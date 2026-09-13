@@ -445,7 +445,7 @@ where
         data_offer: DataOffer,
         window: Window,
         position: Point<Pixels>,
-        paths: gpui_platform_core::ExternalPaths,
+        paths: gpui_platform::ExternalPaths,
     ) -> Option<(Window, PlatformInput)> {
         if !self.is_uri_read_current(generation) {
             data_offer.destroy();
@@ -2746,7 +2746,7 @@ impl Dispatch<wl_data_device::WlDataDevice, ()> for WaylandClientStatePtr {
                                 data_offer,
                                 drag_window,
                                 position,
-                                gpui_platform_core::ExternalPaths(paths),
+                                gpui_platform::ExternalPaths(paths),
                             );
 
                             drop(state);
