@@ -7596,6 +7596,7 @@ dependencies = [
  "anyhow",
  "async-channel 2.5.0",
  "collections",
+ "core-video",
  "derive_more",
  "etagere",
  "futures 0.3.34",
