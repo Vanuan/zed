@@ -7600,6 +7600,7 @@ dependencies = [
  "derive_more",
  "etagere",
  "futures 0.3.34",
+ "gpui_engine",
  "gpui_shared_string",
  "gpui_types",
  "image",
@@ -7613,6 +7614,24 @@ dependencies = [
  "smallvec",
  "stacksafe",
  "taffy",
+]
+
+[[package]]
+name = "gpui_engine"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "core-video",
+ "derive_more",
+ "etagere",
+ "gpui_shared_string",
+ "gpui_types",
+ "image",
+ "log",
+ "rand 0.9.4",
+ "schemars 1.0.4",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
