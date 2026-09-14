@@ -7502,7 +7502,7 @@ dependencies = [
  "futures 0.3.34",
  "futures-concurrency",
  "getrandom 0.3.4",
- "gpui_backend",
+ "gpui_engine_default",
  "gpui_linux",
  "gpui_macos",
  "gpui_macros",
@@ -7578,7 +7578,7 @@ dependencies = [
  "etagere",
  "foreign-types 0.5.0",
  "gpui",
- "gpui_backend",
+ "gpui_engine_default",
  "gpui_platform",
  "image",
  "log",
@@ -7589,7 +7589,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_backend"
+name = "gpui_engine"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "core-video",
+ "derive_more",
+ "etagere",
+ "gpui_shared_string",
+ "gpui_types",
+ "image",
+ "log",
+ "rand 0.9.4",
+ "refineable",
+ "schemars 1.0.4",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "gpui_engine_default"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -7616,25 +7635,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpui_engine"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "core-video",
- "derive_more",
- "etagere",
- "gpui_shared_string",
- "gpui_types",
- "image",
- "log",
- "rand 0.9.4",
- "refineable",
- "schemars 1.0.4",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "gpui_linux"
 version = "0.1.0"
 dependencies = [
@@ -7651,7 +7651,7 @@ dependencies = [
  "filedescriptor",
  "futures 0.3.34",
  "gpui",
- "gpui_backend",
+ "gpui_engine_default",
  "gpui_platform",
  "gpui_types",
  "gpui_util",
@@ -7704,7 +7704,7 @@ dependencies = [
  "futures 0.3.34",
  "gpui",
  "gpui_apple",
- "gpui_backend",
+ "gpui_engine_default",
  "gpui_platform",
  "gpui_util",
  "image",
@@ -7754,7 +7754,7 @@ dependencies = [
  "derive_more",
  "etagere",
  "futures 0.3.34",
- "gpui_backend",
+ "gpui_engine_default",
  "gpui_shared_string",
  "gpui_types",
  "gpui_util",
@@ -7832,7 +7832,7 @@ dependencies = [
  "console_error_panic_hook",
  "futures 0.3.34",
  "gpui",
- "gpui_backend",
+ "gpui_engine_default",
  "gpui_platform",
  "gpui_wgpu",
  "http_client",
@@ -7864,7 +7864,7 @@ dependencies = [
  "criterion",
  "etagere",
  "gpui",
- "gpui_backend",
+ "gpui_engine_default",
  "gpui_platform",
  "gpui_util",
  "itertools 0.14.0",
@@ -7894,7 +7894,7 @@ dependencies = [
  "dunce",
  "etagere",
  "futures 0.3.34",
- "gpui_backend",
+ "gpui_engine_default",
  "gpui_platform",
  "gpui_util",
  "image",
