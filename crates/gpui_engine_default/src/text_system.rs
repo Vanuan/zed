@@ -483,9 +483,8 @@ impl DefaultTextSystem {
                 .pop()
                 .unwrap_or_else(|| LineWrapper::new(font_id, font_size, self.clone()))
         };
-        let this = self.clone();
         LineWrapperHandle::new(wrapper, move |wrapper| {
-            let mut lock = this.wrapper_pool.lock();
+            let mut lock = self.wrapper_pool.lock();
             lock.get_mut(&FontIdWithSize { font_id, font_size })
                 .expect("wrapper pool entry exists")
                 .push(wrapper);
