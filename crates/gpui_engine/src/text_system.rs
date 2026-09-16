@@ -7,6 +7,7 @@
 use anyhow::Result;
 use gpui_shared_string::SharedString;
 use gpui_types::{Bounds, DevicePixels, Hsla, Pixels, Size};
+use std::any::Any;
 use std::borrow::Cow;
 use std::future::Future;
 use std::ops::Range;
@@ -29,7 +30,7 @@ pub trait MissingGlyphReports: Send {
 /// Implementations wrap a [`PlatformTextSystem`] with the engine's font-id,
 /// metric, raster-bounds, and line-wrapper pools, and with the per-frame
 /// line-layout cache the authoring layer reuses.
-pub trait TextSystem: Send + Sync {
+pub trait TextSystem: Send + Sync + Any {
     /// The platform text system this engine wraps.
     fn platform_text_system(&self) -> &Arc<dyn PlatformTextSystem>;
 
@@ -183,4 +184,14 @@ pub trait TextSystem: Send + Sync {
         force_width: Option<Pixels>,
         materialize_text: Box<dyn FnOnce() -> SharedString>,
     ) -> Arc<LineLayout>;
+}
+
+impl dyn TextSystem {
+    /// A type-erased view of this text system, for downcasting to a concrete
+    /// implementation (e.g. `ParleyTextSystem`) when a caller needs
+    /// implementation-specific layout features that the shared SPI does not
+    /// expose.
+    pub fn as_any(&self) -> &dyn Any {
+        self as &dyn Any
+    }
 }
