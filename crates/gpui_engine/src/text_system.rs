@@ -8,13 +8,21 @@ use anyhow::Result;
 use gpui_shared_string::SharedString;
 use gpui_types::{Bounds, DevicePixels, Hsla, Pixels, Size};
 use std::borrow::Cow;
+use std::future::Future;
 use std::ops::Range;
+use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::{
-    Font, FontId, FontRun, LineLayout, LineLayoutIndex, PlatformTextSystem, RenderGlyphParams,
-    TextRenderingMode, WrappedLineLayout,
+    Font, FontId, FontRun, LineLayout, LineLayoutIndex, LineWrapperHandle, MissingGlyph,
+    PlatformTextSystem, RenderGlyphParams, TextRenderingMode, WrappedLineLayout,
 };
+
+/// A stream of grapheme clusters that exhausted font fallback.
+pub trait MissingGlyphReports: Send {
+    /// Waits for the next batch of missing glyphs, or `None` once reporting stops.
+    fn recv(&mut self) -> Pin<Box<dyn Future<Output = Option<Vec<MissingGlyph>>> + Send + '_>>;
+}
 
 /// The text shaping, metric, wrapping, and line-layout surface.
 ///
@@ -30,6 +38,22 @@ pub trait TextSystem: Send + Sync {
 
     /// Add font data to the text system.
     fn add_fonts(&self, fonts: Vec<Cow<'static, [u8]>>) -> Result<()>;
+
+    /// Takes the receiver for missing-glyph reports.
+    ///
+    /// Only one receiver is available for each text system. Returns `None` when
+    /// the receiver was already taken or another caller is taking it.
+    fn take_missing_glyph_receiver(&self) -> Option<Box<dyn MissingGlyphReports>>;
+
+    /// Starts reporting grapheme clusters that exhaust font fallback.
+    fn enable_missing_glyph_reporting(&self);
+
+    /// Stops reporting missing glyphs and discards any reports collected so far.
+    fn disable_missing_glyph_reporting(&self);
+
+    /// Reports missing glyphs as if the platform text system had observed them.
+    #[cfg(any(test, feature = "test-support"))]
+    fn report_missing_glyphs_in_test(&self, missing_glyphs: Vec<MissingGlyph>);
 
     /// The font for a font id, if it was resolved through this system.
     fn get_font_for_id(&self, id: FontId) -> Option<Font>;
@@ -92,6 +116,9 @@ pub trait TextSystem: Send + Sync {
 
     /// Return a font-run buffer to the pool for reuse.
     fn recycle_font_runs(&self, font_runs: Vec<FontRun>);
+
+    /// A line wrapper for the given font and size, returned from a pool.
+    fn line_wrapper(self: Arc<Self>, font: Font, font_size: Pixels) -> LineWrapperHandle;
 
     /// The rasterized size and location of a glyph.
     fn raster_bounds(&self, params: &RenderGlyphParams) -> Result<Bounds<DevicePixels>>;

@@ -622,7 +622,7 @@ enum PlatformOwnedDragState {
 pub struct App {
     pub(crate) this: Weak<AppCell>,
     pub(crate) platform: Rc<dyn Platform>,
-    text_system: Arc<DefaultTextSystem>,
+    text_system: Arc<dyn TextSystem>,
     /// Creates a fresh layout engine for each window. Injected at application
     /// construction so windows drive layout through the [`LayoutEngine`] trait
     /// without naming an implementation.
@@ -2034,7 +2034,7 @@ impl App {
     }
 
     /// Accessor for the text system.
-    pub fn text_system(&self) -> &Arc<DefaultTextSystem> {
+    pub fn text_system(&self) -> &Arc<dyn TextSystem> {
         &self.text_system
     }
 
@@ -2057,7 +2057,7 @@ impl App {
         if let Some(mut receiver) = self.text_system.take_missing_glyph_receiver() {
             let callback = self.missing_glyph_callback.clone();
             self.spawn(async move |cx| {
-                while let Ok(missing_glyphs) = receiver.recv().await {
+                while let Some(missing_glyphs) = receiver.recv().await {
                     cx.update(|cx| callback.invoke(&missing_glyphs, cx));
                 }
             })

@@ -27,7 +27,7 @@ pub struct TestAppContext {
     #[doc(hidden)]
     pub dispatcher: TestDispatcher,
     test_platform: Rc<TestPlatform>,
-    text_system: Arc<DefaultTextSystem>,
+    text_system: Arc<dyn TextSystem>,
     fn_name: Option<&'static str>,
     on_quit: Rc<RefCell<Vec<Box<dyn FnOnce() + 'static>>>>,
     #[doc(hidden)]
@@ -368,8 +368,8 @@ impl TestAppContext {
         (view, cx)
     }
 
-    /// returns the DefaultTextSystem
-    pub fn text_system(&self) -> &Arc<DefaultTextSystem> {
+    /// Returns the app's [`TextSystem`].
+    pub fn text_system(&self) -> &Arc<dyn TextSystem> {
         &self.text_system
     }
 

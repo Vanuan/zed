@@ -8,8 +8,8 @@ use anyhow::{Context as _, Result, anyhow};
 use collections::{FxHashMap, FxHashSet};
 use gpui_engine::{
     Font, FontId, FontMetrics, FontRun, LineLayout, LineLayoutIndex, LineWrapper, LineWrapperHandle,
-    MissingGlyph, MissingGlyphSink, PlatformTextSystem, RenderGlyphParams, TextRenderingMode,
-    TextSystem, WrappedLineLayout, font,
+    MissingGlyph, MissingGlyphReports, MissingGlyphSink, PlatformTextSystem, RenderGlyphParams,
+    TextRenderingMode, TextSystem, WrappedLineLayout, font,
 };
 use gpui_shared_string::SharedString;
 use gpui_types::{Bounds, DevicePixels, Hsla, Pixels, Size, px};
@@ -18,7 +18,9 @@ use parking_lot::{Mutex, RwLock, RwLockUpgradableReadGuard};
 use smallvec::{SmallVec, smallvec};
 use std::borrow::Cow;
 use std::collections::VecDeque;
+use std::future::Future;
 use std::ops::Range;
+use std::pin::Pin;
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
@@ -148,6 +150,12 @@ impl Drop for MissingGlyphReceiver {
     }
 }
 
+impl MissingGlyphReports for MissingGlyphReceiver {
+    fn recv(&mut self) -> Pin<Box<dyn Future<Output = Option<Vec<MissingGlyph>>> + Send + '_>> {
+        Box::pin(async move { MissingGlyphReceiver::recv(self).await.ok() })
+    }
+}
+
 use crate::LineLayoutCache;
 
 /// The GPUI text rendering sub system.
@@ -247,34 +255,6 @@ impl DefaultTextSystem {
         self.missing_glyph_reporter.reset();
         self.font_generation.fetch_add(1, Ordering::Release);
         Ok(())
-    }
-
-    /// Takes the receiver for missing-glyph reports.
-    ///
-    /// Only one receiver is available for each text system. Returns `None` when
-    /// the receiver was already taken or another caller is taking it.
-    pub fn take_missing_glyph_receiver(&self) -> Option<MissingGlyphReceiver> {
-        self.missing_glyph_receiver
-            .try_lock()
-            .and_then(|mut receiver| receiver.take())
-    }
-
-    /// Starts reporting grapheme clusters that exhaust font fallback.
-    pub fn enable_missing_glyph_reporting(&self) {
-        self.platform_text_system
-            .set_missing_glyph_sink(Some(self.missing_glyph_reporter.clone()));
-    }
-
-    /// Stops reporting missing glyphs and discards any reports collected so far.
-    pub fn disable_missing_glyph_reporting(&self) {
-        self.platform_text_system.set_missing_glyph_sink(None);
-        self.missing_glyph_reporter.reset();
-    }
-
-    /// Reports missing glyphs as if the platform text system had observed them.
-    #[cfg(any(test, feature = "test-support"))]
-    pub fn report_missing_glyphs_in_test(&self, missing_glyphs: Vec<MissingGlyph>) {
-        self.missing_glyph_reporter.report(missing_glyphs);
     }
 
     /// Get the FontId for the configure font family and style.
@@ -494,7 +474,7 @@ impl DefaultTextSystem {
     }
 
     /// Returns a handle to a line wrapper, for the given font and font size.
-    pub fn line_wrapper(self: &Arc<Self>, font: Font, font_size: Pixels) -> LineWrapperHandle {
+    pub fn line_wrapper(self: Arc<Self>, font: Font, font_size: Pixels) -> LineWrapperHandle {
         let font_id = self.resolve_font(&font);
         let wrapper = {
             let mut lock = self.wrapper_pool.lock();
@@ -559,6 +539,28 @@ struct FontIdWithSize {
 }
 
 impl TextSystem for DefaultTextSystem {
+    fn take_missing_glyph_receiver(&self) -> Option<Box<dyn MissingGlyphReports>> {
+        self.missing_glyph_receiver
+            .try_lock()
+            .and_then(|mut receiver| receiver.take())
+            .map(|receiver| Box::new(receiver) as Box<dyn MissingGlyphReports>)
+    }
+
+    fn enable_missing_glyph_reporting(&self) {
+        self.platform_text_system
+            .set_missing_glyph_sink(Some(self.missing_glyph_reporter.clone()));
+    }
+
+    fn disable_missing_glyph_reporting(&self) {
+        self.platform_text_system.set_missing_glyph_sink(None);
+        self.missing_glyph_reporter.reset();
+    }
+
+    #[cfg(any(test, feature = "test-support"))]
+    fn report_missing_glyphs_in_test(&self, missing_glyphs: Vec<MissingGlyph>) {
+        self.missing_glyph_reporter.report(missing_glyphs);
+    }
+
     fn platform_text_system(&self) -> &Arc<dyn PlatformTextSystem> {
         &self.platform_text_system
     }
@@ -650,6 +652,10 @@ impl TextSystem for DefaultTextSystem {
 
     fn recycle_font_runs(&self, font_runs: Vec<FontRun>) {
         self.recycle_font_runs(font_runs)
+    }
+
+    fn line_wrapper(self: Arc<Self>, font: Font, font_size: Pixels) -> LineWrapperHandle {
+        DefaultTextSystem::line_wrapper(self, font, font_size)
     }
 
     fn raster_bounds(&self, params: &RenderGlyphParams) -> Result<Bounds<DevicePixels>> {
