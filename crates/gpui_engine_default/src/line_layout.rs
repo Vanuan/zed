@@ -16,7 +16,7 @@ use std::{
     },
 };
 
-use crate::LineWrapper;
+use gpui_engine::LineWrapper;
 
 pub(crate) fn compute_wrap_boundaries(
     layout: &LineLayout,
