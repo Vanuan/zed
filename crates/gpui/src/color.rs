@@ -60,12 +60,24 @@ impl Rgba {
             other
         } else if other.a <= 0.0 {
             *self
-        } else {
+        } else if self.a >= 1.0 {
+            // Fast path for opaque backgrounds: avoids division and matches original performance
+            let background_alpha = 1.0 - other.a;
             Rgba {
-                r: (self.r * (1.0 - other.a)) + (other.r * other.a),
-                g: (self.g * (1.0 - other.a)) + (other.g * other.a),
-                b: (self.b * (1.0 - other.a)) + (other.b * other.a),
-                a: self.a,
+                r: (self.r * background_alpha) + (other.r * other.a),
+                g: (self.g * background_alpha) + (other.g * other.a),
+                b: (self.b * background_alpha) + (other.b * other.a),
+                a: 1.0,
+            }
+        } else {
+            // Correct Porter-Duff source-over blend for translucent backgrounds
+            let background_alpha = self.a * (1.0 - other.a);
+            let alpha = other.a + background_alpha;
+            Rgba {
+                r: (self.r * background_alpha + other.r * other.a) / alpha,
+                g: (self.g * background_alpha + other.g * other.a) / alpha,
+                b: (self.b * background_alpha + other.b * other.a) / alpha,
+                a: alpha,
             }
         }
     }
